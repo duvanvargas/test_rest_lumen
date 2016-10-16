@@ -20,6 +20,9 @@ class AuthController extends Controller
      */
     public function postLogin(Request $request)
     {
+        /*
+        Primero verificamos si el email esta dentro de los parametros y si ha enviado una contraseña
+        */
         try {
             $this->validate($request, [
                 'email' => 'required|email|max:255',
@@ -28,36 +31,39 @@ class AuthController extends Controller
         } catch (HttpResponseException $e) {
             return response()->json([
                 'error' => [
-                    'message' => 'invalid_auth',
+                    'message' => 'parametros_invalidos',
                     'status_code' => IlluminateResponse::HTTP_BAD_REQUEST,
                 ],
             ], IlluminateResponse::HTTP_BAD_REQUEST);
         }
-
-        $credentials = $this->getCredentials($request);
+        /*
+        Despues obtenemos solamente los aprametros de email y de password (para evitar que injecten otros parametros)
+        */
+        $credentials = $this->getCredentials($request); 
 
         try {
-            // Attempt to verify the credentials and create a token for the user
+            // Si el token que regresa attemp esta vacio quiere decir que no encontro un usuario valido
+            //Entonces retorna credenciales invalidas
             if (!$token = JWTAuth::attempt($credentials)) {
                 return response()->json([
                     'error' => [
-                        'message' => 'invalid_credentials',
+                        'message' => 'credenciales_invalidas',
                     ],
                 ], IlluminateResponse::HTTP_UNAUTHORIZED);
             }
         } catch (JWTException $e) {
-            // Something went wrong whilst attempting to encode the token
+            //Si existe algun error interno externo arroja error 500
             return response()->json([
                 'error' => [
-                    'message' => 'could_not_create_token',
+                    'message' => 'no_se_pudo_crear_token',
                 ],
             ], IlluminateResponse::HTTP_INTERNAL_SERVER_ERROR);
         }
 
-        // All good so return the token
+        // si el login y el token es valido los retorno  :)
         return response()->json([
             'success' => [
-                'message' => 'token_generated',
+                'message' => 'token_generado',
                 'token' => $token,
             ]
         ]);
@@ -76,7 +82,7 @@ class AuthController extends Controller
     }
 
     /**
-     * Invalidate a token.
+     * Invalidamos el token
      *
      * @return \Illuminate\Http\Response
      */
@@ -86,11 +92,11 @@ class AuthController extends Controller
 
         $token->invalidate();
 
-        return ['success' => 'token_invalidated'];
+        return ['success' => 'token_invalidado'];
     }
 
     /**
-     * Refresh a token.
+     * Refrescamos el token.
      *
      * @return \Illuminate\Http\Response
      */
@@ -100,6 +106,6 @@ class AuthController extends Controller
 
         $newToken = $token->refresh();
 
-        return ['success' => 'token_refreshed', 'token' => $newToken];
+        return ['success' => 'token_refrescado', 'token' => $newToken];
     }
 }
